@@ -1073,25 +1073,45 @@ export const GameScreen = ({
     const minY = center - halfHeight;
 
     const states = Array(gridWidth).fill(null).map(() => Array(gridHeight).fill(null));
+
+    // Determine which color is visible to the player. In solo mode, only the active player's color is visible
+    const targetColor = isSoloMode ? Array.from(players.values())[activePlayerIndex]?.color ?? myColor ?? null : myColor;
+
+    // Setting the active player's color as the visible color
+    const visibleColor = targetColor ? COLOR_MAP_LOWER[targetColor] : null;
+
+    // Helper to apply the state of the player to the grid
+    const applyState = (value: PlayerColor | "clear" | null, x: number, y: number) => {
+      if (x < 0 || x >= gridWidth || y < 0 || y >= gridHeight)
+        return;
+
+      if (!value || value === "clear" || !visibleColor){
+        states[x][y] = null;
+        return;
+      }
+
+      const mapped = COLOR_MAP_LOWER[value];
+      // Only change the state if the color is visible to the player
+      states[x][y] = mapped === visibleColor ? mapped : null;
+    };
+
     gridColors.forEach((color, key) => {
       const [absX, absY] = key.split(",").map(Number);
       const x = absX - minX;
       const y = absY - minY;
-      if (x >= 0 && x < gridWidth && y >= 0 && y < gridHeight) {
-        states[x][y] = COLOR_MAP_LOWER[color];
-      }
+      applyState(color, x, y);
     });
+
     // Apply client-side predictions on top of server state
     predictedGridColors.forEach((value, key) => {
       const [absX, absY] = key.split(",").map(Number);
       const x = absX - minX;
       const y = absY - minY;
-      if (x >= 0 && x < gridWidth && y >= 0 && y < gridHeight) {
-        states[x][y] = value === "clear" ? null : COLOR_MAP_LOWER[value];
-      }
+      applyState(value === "clear" ? null : value, x, y);
     });
+
     return states;
-  }, [gridColors, predictedGridColors, gridWidth, gridHeight]);
+  }, [gridColors, predictedGridColors, gridWidth, gridHeight, isSoloMode, myColor, activePlayerIndex, players]);
 
   // Detect score changes and trigger floating score animations (sig avoids work every Colyseus tick).
   useEffect(() => {
@@ -2250,6 +2270,11 @@ export const GameScreen = ({
             {/* Players */}
             {Array.from(players.values()).map((player, index) => {
               const isMe = isSoloMode ? index === activePlayerIndex : player.color === myColor;
+              
+              // Only display player, if they are the local player in multiplayer
+              if (!isMe)
+                return null;
+
               // Use predicted position for local player in multiplayer
               const playerX = isMe && predictedPos ? predictedPos.x : player.x;
               const playerY = isMe && predictedPos ? predictedPos.y : player.y;
