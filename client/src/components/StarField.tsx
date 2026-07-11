@@ -80,10 +80,10 @@ export const StarField = () => {
           canvas.height = 32;
           const ctx = canvas.getContext('2d')!;
           const gradient = ctx.createRadialGradient(16, 16, 0, 16, 16, 16);
-          gradient.addColorStop(0, 'rgba(100, 200, 255, 1)');
-          gradient.addColorStop(0.7, 'rgba(100, 200, 255, 1)');
-          gradient.addColorStop(0.85, 'rgba(50, 150, 255, 0.5)');
-          gradient.addColorStop(1, 'rgba(0, 100, 200, 0)');
+          gradient.addColorStop(0, 'rgba(200, 150, 255, 1)');
+          gradient.addColorStop(0.7, 'rgba(200, 150, 255, 1)');
+          gradient.addColorStop(0.85, 'rgba(150, 100, 220, 0.5)');
+          gradient.addColorStop(1, 'rgba(100, 50, 150, 0)');
           ctx.fillStyle = gradient;
           ctx.fillRect(0, 0, 32, 32);
           const texture = new THREE.CanvasTexture(canvas);

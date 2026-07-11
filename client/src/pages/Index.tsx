@@ -574,7 +574,7 @@ const Index = () => {
         <div className="flex flex-col items-center gap-4" role="status" aria-live="polite" aria-label="Connecting to game…">
           <div
             className="h-10 w-10 animate-spin rounded-full border-2 border-t-transparent"
-            style={{ borderColor: "rgba(0, 149, 255, 0.3)", borderTopColor: "transparent" }}
+            style={{ borderColor: "rgba(147, 51, 234, 0.3)", borderTopColor: "transparent" }}
             aria-hidden
           />
           <p className="font-montreal text-[0.6875rem] uppercase tracking-[0.06em] text-sky-200/90">
@@ -635,9 +635,9 @@ const Index = () => {
           if (showGo) {
             return {
               fontSize: "clamp(6rem, 20vw, 12rem)",
-              color: "rgba(173, 234, 255, 1)",
+              color: "rgba(235, 220, 255, 1)",
               textShadow:
-                "0 0 40px rgba(0, 149, 255, 0.8), 0 0 80px rgba(0, 149, 255, 0.6), 0 0 120px rgba(0, 149, 255, 0.4), 0 0 200px rgba(0, 149, 255, 0.2)",
+                "0 0 48px rgba(191, 90, 242, 0.9), 0 0 96px rgba(147, 51, 234, 0.7), 0 0 140px rgba(147, 51, 234, 0.45)",
               transform: "scale(1.2)",
               transition: "all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)",
             };
@@ -647,7 +647,7 @@ const Index = () => {
               fontSize: "clamp(5rem, 16vw, 10rem)",
               color: "rgba(255, 255, 255, 1)",
               textShadow:
-                "0 0 30px rgba(0, 149, 255, 0.7), 0 0 60px rgba(0, 149, 255, 0.5), 0 0 100px rgba(0, 149, 255, 0.3)",
+                "0 0 30px rgba(147, 51, 234, 0.7), 0 0 60px rgba(147, 51, 234, 0.5), 0 0 100px rgba(147, 51, 234, 0.3)",
               transform: `scale(${1 + (4 - gameState.countdown) * 0.05})`,
               transition: "all 0.15s cubic-bezier(0.34, 1.56, 0.64, 1)",
             };
@@ -656,7 +656,7 @@ const Index = () => {
             return {
               fontSize: "clamp(4rem, 12vw, 8rem)",
               color: "rgba(255, 255, 255, 0.9)",
-              textShadow: "0 0 20px rgba(0, 149, 255, 0.4), 0 0 40px rgba(0, 149, 255, 0.2)",
+              textShadow: "0 0 20px rgba(147, 51, 234, 0.4), 0 0 40px rgba(147, 51, 234, 0.2)",
               transform: "scale(1)",
               transition: "all 0.2s ease-out",
             };
@@ -664,7 +664,7 @@ const Index = () => {
           return {
             fontSize: "clamp(3.5rem, 10vw, 7rem)",
             color: "rgba(255, 255, 255, 0.75)",
-            textShadow: "0 0 10px rgba(0, 149, 255, 0.15)",
+            textShadow: "0 0 10px rgba(147, 51, 234, 0.15)",
             transform: "scale(1)",
             transition: "all 0.25s ease-out",
           };
@@ -674,7 +674,7 @@ const Index = () => {
           <div
             className="fixed inset-0 flex items-center justify-center z-40 pointer-events-none bg-black"
             style={{
-              background: `radial-gradient(circle at 50% 50%, rgba(0, 149, 255, ${glowIntensity}) 0%, rgba(0, 60, 120, ${glowIntensity * 0.4}) ${glowSize}%, transparent ${glowSize + 30}%)`,
+              background: `radial-gradient(circle at 50% 50%, rgba(147, 51, 234, ${glowIntensity}) 0%, rgba(48, 0, 96, ${glowIntensity * 0.4}) ${glowSize}%, transparent ${glowSize + 30}%)`,
               transition: "background 0.3s ease",
             }}
           >
@@ -697,7 +697,7 @@ const Index = () => {
                 style={{
                   width: "clamp(120px, 30vw, 240px)",
                   height: "clamp(120px, 30vw, 240px)",
-                  border: `2px solid rgba(0, 149, 255, ${0.1 + ((from - gameState.countdown) / from) * 0.3})`,
+                  border: `2px solid rgba(147, 51, 234, ${0.1 + ((from - gameState.countdown) / from) * 0.3})`,
                   borderRadius: "50%",
                   animation: "countdownPulse 1s ease-out infinite",
                 }}
@@ -708,7 +708,7 @@ const Index = () => {
               <div
                 className="absolute inset-0 pointer-events-none"
                 style={{
-                  background: "radial-gradient(circle at 50% 50%, rgba(173, 234, 255, 0.15) 0%, transparent 60%)",
+                  background: "radial-gradient(circle at 50% 50%, rgba(221, 214, 255, 0.15) 0%, transparent 60%)",
                   animation: "countdownGoFlash 0.6s ease-out forwards",
                 }}
               />
@@ -733,7 +733,7 @@ const Index = () => {
           <div className="flex flex-col items-center gap-4" role="status" aria-live="polite">
             <div
               className="h-10 w-10 animate-spin rounded-full border-2 border-t-transparent"
-              style={{ borderColor: "rgba(0, 149, 255, 0.3)", borderTopColor: "transparent" }}
+              style={{ borderColor: "rgba(147, 51, 234, 0.3)", borderTopColor: "transparent" }}
               aria-hidden
             />
             <div className="flex flex-col items-center gap-1">

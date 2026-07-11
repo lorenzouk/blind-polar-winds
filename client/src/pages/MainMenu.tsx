@@ -1,7 +1,8 @@
 import { useNavigate } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useSounds } from "@/hooks/use-sounds";
 import { useToast } from "@/hooks/use-toast";
 import type { GameInitPayload } from "@/lib/session-storage";
 import { Users, Swords, LogIn } from "lucide-react";
@@ -11,8 +12,10 @@ const NAME_STORAGE_KEY = "pw-player-name";
 const MainMenu = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { play } = useSounds();
   const [playerName, setPlayerName] = useState("");
   const [joinRoomId, setJoinRoomId] = useState("");
+  const lastHoverSoundAtRef = useRef(0);
 
   // Remember the player's name across sessions (no auth in standalone build).
   useEffect(() => {
@@ -56,6 +59,14 @@ const MainMenu = () => {
     navigate("/play", { state: { initPayload } });
   };
 
+  const handleButtonHover = () => {
+    const now = Date.now();
+    if (now - lastHoverSoundAtRef.current < 220) return;
+    lastHoverSoundAtRef.current = now;
+    play("move");
+  };
+  const handleButtonClick = () => play("gold");
+
   const handleSolo = () => startGame(true);
   const handleMultiplayer = () => startGame(false);
   const handleJoinRoom = () => {
@@ -75,9 +86,9 @@ const MainMenu = () => {
             id="main-menu-title"
             className="text-4xl font-bold text-white tracking-tight"
           >
-            Polar Winds
+            Blind Polar Winds
           </h1>
-          <p className="text-slate-500 text-sm">Enter a name and pick a mode to play.</p>
+          <p className="text-slate-500 text-sm">You can't see other players, only yourself...</p>
         </header>
 
         <section className="space-y-3 text-left" aria-label="Player name">
@@ -104,21 +115,31 @@ const MainMenu = () => {
           <div className="space-y-3">
             <Button
               type="button"
-              onClick={handleSolo}
-              className="w-full h-14 bg-blue-600 text-white hover:bg-blue-700 text-lg font-semibold gap-3"
+              onClick={() => {
+                handleButtonClick();
+                handleSolo();
+              }}
+              onMouseEnter={handleButtonHover}
+              onFocus={handleButtonHover}
+              className="w-full h-14 bg-purple-600 text-white hover:bg-purple-700 text-lg font-semibold gap-3"
             >
               <Swords className="w-5 h-5 shrink-0" aria-hidden />
-              Solo Game
+              Blind Solo
             </Button>
 
             <Button
               type="button"
-              onClick={handleMultiplayer}
+              onClick={() => {
+                handleButtonClick();
+                handleMultiplayer();
+              }}
+              onMouseEnter={handleButtonHover}
+              onFocus={handleButtonHover}
               variant="outline"
               className="w-full h-14 border border-white/10 bg-white/5 text-white text-lg font-semibold gap-3 hover:bg-white/10 hover:text-white"
             >
               <Users className="w-5 h-5 shrink-0" aria-hidden />
-              Multiplayer
+              Blind Multiplayer
             </Button>
           </div>
         </section>
@@ -149,7 +170,12 @@ const MainMenu = () => {
             />
             <Button
               type="button"
-              onClick={handleJoinRoom}
+              onClick={() => {
+                handleButtonClick();
+                handleJoinRoom();
+              }}
+              onMouseEnter={handleButtonHover}
+              onFocus={handleButtonHover}
               disabled={!joinRoomId.trim()}
               variant="outline"
               className="h-14 shrink-0 border border-white/10 bg-white/5 text-white hover:bg-white/10 hover:text-white px-3 sm:px-4 gap-2 shadow-none"

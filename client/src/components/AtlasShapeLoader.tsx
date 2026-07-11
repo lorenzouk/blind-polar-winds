@@ -78,7 +78,7 @@ function ShapeGlyph({
           className="pointer-events-none absolute left-1/2 top-1/2 z-0 h-[200%] w-[200%] -translate-x-1/2 -translate-y-1/2 rounded-full transition-opacity duration-500"
           style={{
             background:
-              "radial-gradient(ellipse at center, rgba(56, 189, 248, 0.42) 0%, rgba(14, 165, 233, 0.22) 28%, rgba(2, 132, 199, 0.08) 55%, transparent 78%)",
+              "radial-gradient(ellipse at center, rgba(147, 51, 234, 0.42) 0%, rgba(168, 85, 247, 0.22) 28%, rgba(120, 60, 180, 0.08) 55%, transparent 78%)",
             filter: "blur(6px)",
             opacity: active ? 1 : 0.35,
           }}
@@ -92,7 +92,7 @@ function ShapeGlyph({
               top: `${(d.y / 10) * 100}%`,
               width: Math.max(2, sizePx * 0.2),
               height: Math.max(2, sizePx * 0.2),
-              backgroundColor: active ? "#e0f2fe" : "#7dd3fc",
+              backgroundColor: active ? "#efe7ff" : "#c4b5fd",
               animation: `${active ? "atlas-shape-dot-glow-active" : "atlas-shape-dot-glow"} ${dur}s ease-in-out infinite`,
               animationDelay: `${(delays[i] ?? 0) / 1000}s`,
             }}

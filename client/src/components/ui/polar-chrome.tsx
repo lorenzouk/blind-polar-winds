@@ -1,13 +1,13 @@
 /** Cold polar HUD chrome (sky / ice) — shared by game HUD and lobby panels. */
 export const POLAR_HUD = {
-  border: "rgba(56, 189, 248, 0.2)",
-  barBorder: "rgba(56, 189, 248, 0.2)",
-  barInset: "rgba(14, 165, 233, 0.2)",
+  border: "rgba(147, 51, 234, 0.2)",
+  barBorder: "rgba(147, 51, 234, 0.2)",
+  barInset: "rgba(168, 85, 247, 0.2)",
   connectorFrom: "rgba(255,255,255,0.2)",
-  connectorVia: "rgba(56, 189, 248, 0.2)",
-  connectorTo: "rgba(125, 211, 252, 0.2)",
-  marker: "#7dd3fc",
-  markerRing: "rgba(186, 230, 253, 0.2)",
+  connectorVia: "rgba(147, 51, 234, 0.2)",
+  connectorTo: "rgba(191, 90, 242, 0.2)",
+  marker: "#c4b5fd",
+  markerRing: "rgba(221, 214, 255, 0.2)",
 } as const;
 
 /** Tiny corner L-brackets (sky hairline). Parent should be `relative overflow-hidden`. */

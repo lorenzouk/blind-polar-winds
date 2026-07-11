@@ -437,7 +437,7 @@ const PolarSlider = ({
             className="absolute inset-0"
             style={{
               background:
-                "linear-gradient(to right, #1e293b 0%, #2d3f56 8%, #3e5570 18%, #5a7a96 30%, #7da3bf 44%, #a5cfe4 58%, #c8e6f5 72%, #e0f2fe 84%, #f0f9ff 93%, #ffffff 100%)",
+                "linear-gradient(to right, #1b1226 0%, #2a1536 8%, #3b1f5a 18%, #5a2f9a 30%, #7a4fcf 44%, #9b7af0 58%, #cbb8ff 72%, #e8ddff 84%, #f6f0ff 93%, #ffffff 100%)",
             }}
           />
           <div
@@ -1447,7 +1447,7 @@ export const GameScreen = ({
                     Mode
                   </p>
                   <p className="truncate text-xs font-medium tabular-nums leading-tight text-slate-200">
-                    Solo mode
+                    Blind Solo Mode
                   </p>
                 </div>
                 <div className="grid min-w-0 gap-1">
@@ -1512,7 +1512,7 @@ export const GameScreen = ({
                 <p className="font-montreal text-[9px] uppercase leading-none tracking-[0.12em] text-slate-500">
                   Mode
                 </p>
-                <p className="truncate text-xs font-medium tabular-nums leading-tight text-slate-200">Multiplayer</p>
+                <p className="truncate text-xs font-medium tabular-nums leading-tight text-slate-200">Blind Multiplayer</p>
               </div>
               {room?.roomId && (
                 <div className="grid min-w-0 gap-1">
@@ -1576,8 +1576,8 @@ export const GameScreen = ({
           className="absolute -inset-3 rounded-sm"
           style={{
             background: barBloom > 0
-              ? `radial-gradient(ellipse at center, rgba(56,189,248,${0.15 + barBloom * 0.3}) 0%, rgba(186,230,253,${barBloom * 0.1}) 50%, transparent 75%)`
-              : `radial-gradient(ellipse at center, rgba(56,189,248,${0.06 + (effectiveStage / 8) * 0.18}) 0%, transparent 70%)`,
+              ? `radial-gradient(ellipse at center, rgba(147,51,234,${0.15 + barBloom * 0.3}) 0%, rgba(221,214,255,${barBloom * 0.1}) 50%, transparent 75%)`
+              : `radial-gradient(ellipse at center, rgba(147,51,234,${0.06 + (effectiveStage / 8) * 0.18}) 0%, transparent 70%)`,
             filter: `blur(${barBloom > 0 ? 10 + barBloom * 8 : 6 + effectiveStage * 1.5}px)`,
             transition: barBloom > 0 ? "none" : "all 1.5s ease-out",
           }}
@@ -1586,8 +1586,8 @@ export const GameScreen = ({
         <div
           className="relative min-w-[7rem] rounded-none border border-solid bg-canvas/50 px-5 py-3 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] ring-1 ring-inset ring-white/[0.06] backdrop-blur-[4px]"
           style={{
-            borderColor: `rgba(56,189,248,${0.2 + (effectiveStage / 8) * 0.2})`,
-            boxShadow: `inset 0 1px 0 rgba(255,255,255,0.06), 0 0 ${8 + effectiveStage * 3}px rgba(56,189,248,${0.05 + (effectiveStage / 8) * 0.15})`,
+            borderColor: `rgba(147,51,234,${0.2 + (effectiveStage / 8) * 0.2})`,
+            boxShadow: `inset 0 1px 0 rgba(255,255,255,0.06), 0 0 ${8 + effectiveStage * 3}px rgba(147,51,234,${0.05 + (effectiveStage / 8) * 0.15})`,
           }}
           data-ui="game-stage-chip"
         >
