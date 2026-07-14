@@ -529,6 +529,17 @@ export const GameScreen = ({
   const [predictedGridColors, setPredictedGridColors] = useState<Map<string, PlayerColor | "clear">>(new Map());
   const settingsCloseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const SETTINGS_CLOSE_MS = 300;
+  const REVEAL_ALL_DURATION_MS = 4000;
+  const [revealAllColors, setRevealAllColors] = useState(false);
+  const revealAllTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const hasRevealedForThresholdRef = useRef(false);
+// Placeholder — real starting value gets set right after currentStageThreshold is computed below
+  const lastThresholdRef = useRef(0);
+
+  // Creates targetColor to be used throughout to track players color
+  const targetColor = isSoloMode
+  ? Array.from(players.values())[activePlayerIndex]?.color ?? myColor ?? null
+  : myColor;
 
   const openSettings = () => {
     if (settingsCloseTimerRef.current != null) {
@@ -591,6 +602,11 @@ export const GameScreen = ({
     ? stageThresholds[stage - 1]
     : (stageThresholds[stageThresholds.length - 1] || 0);
 
+  // On the very first render, seed lastThresholdRef with the real threshold
+  if (lastThresholdRef.current === 0 && currentStageThreshold > 0) {
+    lastThresholdRef.current = currentStageThreshold;
+  }
+
   const scoreBarFillPercent = Math.min(
     (totalScore / (currentStageThreshold || 1)) * 100,
     100,
@@ -599,6 +615,29 @@ export const GameScreen = ({
     (highScore / (currentStageThreshold || 1)) * 100,
     100,
   );
+  
+// Once score reaches the target score, reveal all colors for 4 secs.
+useEffect(() => {
+  const thresholdToCheck = lastThresholdRef.current; // threshold as of last render
+  const reached = thresholdToCheck > 0 && totalScore >= thresholdToCheck;
+
+  if (reached && !hasRevealedForThresholdRef.current) {
+    hasRevealedForThresholdRef.current = true;
+    setRevealAllColors(true);
+    if (revealAllTimeoutRef.current) clearTimeout(revealAllTimeoutRef.current);
+    revealAllTimeoutRef.current = setTimeout(() => {
+      setRevealAllColors(false);
+      revealAllTimeoutRef.current = null;
+    }, 4000);
+  }
+
+  // If the threshold has moved on to a new (higher) stage target,
+  // update our snapshot and reset the guard for the next crossing
+  if (currentStageThreshold !== lastThresholdRef.current) {
+    hasRevealedForThresholdRef.current = false;
+    lastThresholdRef.current = currentStageThreshold;
+  }
+}, [totalScore, currentStageThreshold]);
 
   const scoreBarGradient = useMemo(() => {
     const playerArray = Array.from(players.values());
@@ -951,7 +990,8 @@ export const GameScreen = ({
 
   // Keyboard controls
   useEffect(() => {
-    if (!room || isSpectator || countdown > 0 || isGameOver) return;
+    // Player is not allowed to move during color reveal
+    if (!room || isSpectator || countdown > 0 || isGameOver || revealAllColors) return;
 
     const REPEAT_INTERVAL = 1000 / 5; // 5 times per second
 
@@ -1061,7 +1101,7 @@ export const GameScreen = ({
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [room, myColor, isSoloMode, activePlayerIndex, players, gridWidth, gridHeight, predictedPos, isDevMode, isSpectator, countdown, isGameOver]);
+  }, [room, myColor, isSoloMode, activePlayerIndex, players, gridWidth, gridHeight, predictedPos, isDevMode, isSpectator, countdown, isGameOver, revealAllColors]);
 
   // Transform Grid Colors to Node States
   const nodeStates = useMemo(() => {
@@ -1091,8 +1131,9 @@ export const GameScreen = ({
       }
 
       const mapped = COLOR_MAP_LOWER[value];
+      // Take into account revealAllColors
       // Only change the state if the color is visible to the player
-      states[x][y] = mapped === visibleColor ? mapped : null;
+      states[x][y] = revealAllColors ? mapped : (mapped === visibleColor ? mapped : null);
     };
 
     gridColors.forEach((color, key) => {
@@ -1111,7 +1152,7 @@ export const GameScreen = ({
     });
 
     return states;
-  }, [gridColors, predictedGridColors, gridWidth, gridHeight, isSoloMode, myColor, activePlayerIndex, players]);
+  }, [gridColors, predictedGridColors, gridWidth, gridHeight, isSoloMode, myColor, activePlayerIndex, players, revealAllColors]);
 
   // Detect score changes and trigger floating score animations (sig avoids work every Colyseus tick).
   useEffect(() => {
@@ -2176,6 +2217,16 @@ export const GameScreen = ({
 
             {/* Collectibles */}
             {collectibles.map((collectible) => {
+              // Hide collectibles from other player colors besides own
+              // Keep neutral collectibles visible
+              if (
+                !revealAllColors &&
+                collectible.color !== "NEUTRAL" &&
+                collectible.color !== targetColor
+              ) {
+                return null;
+              }
+
               const pos = getVisualPos(collectible.x, collectible.y, -2.0);
               const displayColor = getDisplayColor(collectible.color);
 
@@ -2271,8 +2322,8 @@ export const GameScreen = ({
             {Array.from(players.values()).map((player, index) => {
               const isMe = isSoloMode ? index === activePlayerIndex : player.color === myColor;
               
-              // Only display player, if they are the local player in multiplayer
-              if (!isMe)
+              // Only display player, if they are the local player in multiplayer or revealAllColors is active
+              if (!isMe && !revealAllColors)
                 return null;
 
               // Use predicted position for local player in multiplayer
