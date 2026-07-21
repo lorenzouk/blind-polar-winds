@@ -91,6 +91,13 @@ export class GameRoom extends Room<GameState> {
   private milestoneReportedTypes = new Set<string>();
   private pendingMilestoneRequests: Promise<void>[] = [];
   private countdownTimer: ReturnType<typeof setInterval> | null = null;
+  private activeRiftEffect: { mode: "teleport" | "reveal"; expiresAt: number; actorSessionId: string | null } | null = null;
+  private riftEffectTimer: ReturnType<typeof setTimeout> | null = null;
+  private riftSpawnTimer: ReturnType<typeof setTimeout> | null = null;
+  private readonly RIFT_EFFECT_DURATION_MS = 4000;
+  private readonly RIFT_SPAWN_INTERVAL_MS = 20000;
+  private readonly RIFT_LIFETIME_MS = 20000;
+  private readonly RIFT_SPAWN_CHANCE = 0.20;
 
   onCreate(options: any) {
     console.log("GameRoom created with options:", options, "| Room ID:", this.roomId);
@@ -243,6 +250,13 @@ export class GameRoom extends Room<GameState> {
 
       if (!player || !playerKey) return;
 
+      if (this.isRiftRevealActive()) {
+        if (message.seq !== undefined) {
+          client.send("moveAck", { seq: message.seq, x: player.x, y: player.y });
+        }
+        return;
+      }
+
       const { direction } = message;
       let newX = player.x;
       let newY = player.y;
@@ -297,6 +311,8 @@ export class GameRoom extends Room<GameState> {
 
         // Recalculate scores
         this.calculateScores();
+
+        this.handleCollectibleCollection(player, playerKey, newX, newY);
 
         // Log move for replay
         this.logEvent({ e: "move", p: this.userIds.get(playerKey) || playerKey, d: direction, x: newX, y: newY });
@@ -836,6 +852,14 @@ export class GameRoom extends Room<GameState> {
       clearInterval(this.countdownTimer);
       this.countdownTimer = null;
     }
+    if (this.riftEffectTimer) {
+      clearTimeout(this.riftEffectTimer);
+      this.riftEffectTimer = null;
+    }
+    if (this.riftSpawnTimer) {
+      clearTimeout(this.riftSpawnTimer);
+      this.riftSpawnTimer = null;
+    }
 
     // Safety net: if the session was never successfully ended in the DB
     // (e.g. server shutdown, or endPolarWindsSession failed with a 500), retry now
@@ -879,6 +903,7 @@ export class GameRoom extends Room<GameState> {
 
     // Start countdown immediately — no ready-up handshake needed
     this.startGameplay();
+    this.startRiftSpawnTimer();
   }
 
   private startGameplay() {
@@ -1714,6 +1739,174 @@ export class GameRoom extends Room<GameState> {
 
     await this.endPolarWindsSession({ abandoned: true });
     this.disconnect();
+  }
+
+  private isRiftRevealActive(): boolean {
+    return !!this.activeRiftEffect && this.activeRiftEffect.mode === "reveal" && Date.now() < this.activeRiftEffect.expiresAt;
+  }
+
+  private handleCollectibleCollection(player: Player, playerKey: string, x: number, y: number) {
+    const collectibleIndex = this.state.collectibles.findIndex((collectible) => collectible.x === x && collectible.y === y && collectible.type === "rift");
+    if (collectibleIndex < 0) return;
+
+    const collectible = this.state.collectibles[collectibleIndex];
+    this.state.collectibles.splice(collectibleIndex, 1);
+
+    const shouldReveal = Math.random() < 0.5;
+    if (shouldReveal) {
+      this.activateRiftRevealEffect(playerKey);
+    } else {
+      this.teleportAllPlayersToRandomLocations();
+    }
+
+    this.logEvent({ e: "rift_collected", p: this.userIds.get(playerKey) || playerKey, t: collectible.type, x, y });
+  }
+
+  private activateRiftRevealEffect(actorSessionId: string) {
+    this.activeRiftEffect = {
+      mode: "reveal",
+      expiresAt: Date.now() + this.RIFT_EFFECT_DURATION_MS,
+      actorSessionId,
+    };
+
+    if (this.riftEffectTimer) {
+      clearTimeout(this.riftEffectTimer);
+    }
+
+    this.riftEffectTimer = setTimeout(() => {
+      this.activeRiftEffect = null;
+      this.riftEffectTimer = null;
+      this.broadcast("riftEffectExpired", {});
+    }, this.RIFT_EFFECT_DURATION_MS);
+
+    this.broadcast("riftEffect", {
+      type: "reveal",
+      durationMs: this.RIFT_EFFECT_DURATION_MS,
+    });
+  }
+
+  private teleportAllPlayersToRandomLocations() {
+    const occupied = new Set<string>();
+    for (const [, otherPlayer] of this.state.players) {
+      occupied.add(`${otherPlayer.x},${otherPlayer.y}`);
+    }
+    for (const collectible of this.state.collectibles) {
+      occupied.add(`${collectible.x},${collectible.y}`);
+    }
+
+    for (const [sessionId, player] of Array.from(this.state.players.entries())) {
+      const destination = this.findSafeTeleportDestination(player, occupied);
+      if (!destination) continue;
+
+      player.x = destination.x;
+      player.y = destination.y;
+      occupied.add(`${destination.x},${destination.y}`);
+
+      const cellKey = `${destination.x},${destination.y}`;
+      let cell = this.state.gridColors.get(cellKey);
+      if (!cell) {
+        cell = new GridCell();
+        this.state.gridColors.set(cellKey, cell);
+      }
+      cell.color = player.color;
+
+      const client = this.clients.find((candidate) => candidate.sessionId === sessionId);
+      if (client) {
+        client.send("riftEffect", {
+          type: "teleport",
+          x: destination.x,
+          y: destination.y,
+        });
+      }
+    }
+
+    this.calculateScores();
+    this.broadcast("riftEffect", { type: "teleport", global: true });
+    this.logEvent({ e: "rift_teleport_global" });
+  }
+
+  private findSafeTeleportDestination(player: Player, occupied: Set<string> = new Set()): { x: number; y: number } | null {
+    const center = Math.floor(this.MAX_GRID_SIZE / 2);
+    const halfWidth = Math.floor(this.state.gridWidth / 2);
+    const halfHeight = Math.floor(this.state.gridHeight / 2);
+    const minX = center - halfWidth;
+    const maxX = center + halfWidth - 1;
+    const minY = center - halfHeight;
+    const maxY = center + halfHeight - 1;
+
+    for (let attempts = 0; attempts < 100; attempts++) {
+      const x = minX + Math.floor(Math.random() * this.state.gridWidth);
+      const y = minY + Math.floor(Math.random() * this.state.gridHeight);
+      const key = `${x},${y}`;
+      if (x === player.x && y === player.y) continue;
+      if (x < minX || x > maxX || y < minY || y > maxY) continue;
+      if (occupied.has(key)) continue;
+      return { x, y };
+    }
+
+    return null;
+  }
+
+  private startRiftSpawnTimer() {
+    if (this.riftSpawnTimer) {
+      clearTimeout(this.riftSpawnTimer);
+    }
+
+    this.riftSpawnTimer = setTimeout(() => {
+      this.riftSpawnTimer = null;
+
+      if (!this.state.gameStarted || this.state.isGameOver || this.state.countdown > 0) {
+        this.startRiftSpawnTimer();
+        return;
+      }
+
+      if (this.state.collectibles.some((collectible) => collectible.type === "rift")) {
+        this.startRiftSpawnTimer();
+        return;
+      }
+
+      if (Math.random() < this.RIFT_SPAWN_CHANCE) {
+        this.spawnRiftCollectible();
+      }
+
+      this.startRiftSpawnTimer();
+    }, this.RIFT_SPAWN_INTERVAL_MS);
+  }
+
+  private spawnRiftCollectible() {
+    const center = Math.floor(this.MAX_GRID_SIZE / 2);
+    const halfWidth = Math.floor(this.state.gridWidth / 2);
+    const halfHeight = Math.floor(this.state.gridHeight / 2);
+    const minX = center - halfWidth;
+    const maxX = center + halfWidth - 1;
+    const minY = center - halfHeight;
+    const maxY = center + halfHeight - 1;
+
+    for (let attempts = 0; attempts < 100; attempts++) {
+      const x = minX + Math.floor(this.rng.next() * this.state.gridWidth);
+      const y = minY + Math.floor(this.rng.next() * this.state.gridHeight);
+      if (x < minX || x > maxX || y < minY || y > maxY) continue;
+      if (this.isPositionOccupied(x, y)) continue;
+
+      const collectible = new Collectible();
+      collectible.id = `rift-${Date.now()}-${this.state.collectibles.length}`;
+      collectible.color = "NEUTRAL";
+      collectible.type = "rift";
+      collectible.x = x;
+      collectible.y = y;
+      this.state.collectibles.push(collectible);
+
+      setTimeout(() => {
+        const index = this.state.collectibles.findIndex((item) => item.id === collectible.id);
+        if (index >= 0) {
+          this.state.collectibles.splice(index, 1);
+          console.log(`Rift collectible expired: ${collectible.id}`);
+        }
+      }, this.RIFT_LIFETIME_MS);
+
+      console.log(`Spawned global rift collectible at (${x}, ${y})`);
+      return;
+    }
   }
 
   private spawnEnemiesForStage(stage: number) {

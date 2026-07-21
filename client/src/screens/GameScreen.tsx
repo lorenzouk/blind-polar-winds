@@ -43,7 +43,7 @@ import {
 // Types
 type PlayerColor = "RED" | "GREEN" | "BLUE";
 type ClueColorLower = "red" | "green" | "blue";
-type CollectibleType = "network" | "box" | "equilibrium" | "clone" | "vantage" | "galaxy" | "polyomino";
+type CollectibleType = "network" | "box" | "equilibrium" | "clone" | "vantage" | "galaxy" | "polyomino" | "rift" | "mystery";
 type CollectibleOrientation = 0 | 90 | 180 | 270;
 
 interface PlayerState {
@@ -808,6 +808,24 @@ useEffect(() => {
       onGameAbandonedRef.current?.();
     };
 
+    const handleRiftEffect = (message: { type: "teleport" | "reveal"; playerColor?: PlayerColor; x?: number; y?: number; durationMs?: number }) => {
+      if (message.type === "reveal") {
+        setRevealAllColors(true);
+        if (revealAllTimeoutRef.current) clearTimeout(revealAllTimeoutRef.current);
+        revealAllTimeoutRef.current = setTimeout(() => {
+          setRevealAllColors(false);
+          revealAllTimeoutRef.current = null;
+        }, message.durationMs ?? REVEAL_ALL_DURATION_MS);
+        playSound("activate");
+        return;
+      }
+
+      if (message.type === "teleport" && message.x != null && message.y != null) {
+        setPredictedPos({ x: message.x, y: message.y });
+        toast.success("Rift breach! You were teleported.");
+      }
+    };
+
     const handleMoveAck = (message: { seq: number; x: number; y: number }) => {
       // Remove this input from pending
       pendingInputsRef.current.delete(message.seq);
@@ -829,6 +847,7 @@ useEffect(() => {
     const offAbandonUpdate = room.onMessage("abandonGameVoteUpdate", handleAbandonVoteUpdate);
     const offAbandonExpired = room.onMessage("abandonGameVoteExpired", handleAbandonVoteExpired);
     const offGameAbandoned = room.onMessage("gameAbandoned", handleGameAbandoned);
+    const offRiftEffect = room.onMessage("riftEffect", handleRiftEffect);
 
     return () => {
       [
@@ -842,6 +861,7 @@ useEffect(() => {
         offAbandonUpdate,
         offAbandonExpired,
         offGameAbandoned,
+        offRiftEffect,
       ].forEach((off) => {
         if (typeof off === "function") off();
       });
@@ -2295,6 +2315,20 @@ useEffect(() => {
                   <group key={collectible.id} position={pos}>
                     <GoldAura isGold={collectible.isGold} color={displayColor}>
                       <Polyomino color={displayColor} playerColor={collectible.color} scale={1.0} connected={collectible.isActivated} />
+                    </GoldAura>
+                  </group>
+                );
+              } else if (collectible.type === "rift") {
+                const riftColor = "#ff4fd8";
+                return (
+                  <group key={collectible.id} position={pos}>
+                    <GoldAura isGold={collectible.isGold} color={riftColor}>
+                      <group rotation={[Math.PI / 2, 0, 0]}>
+                        <mesh>
+                          <torusKnotGeometry args={[0.45, 0.16, 64, 8]} />
+                          <meshStandardMaterial color={riftColor} emissive={riftColor} emissiveIntensity={0.9} />
+                        </mesh>
+                      </group>
                     </GoldAura>
                   </group>
                 );
